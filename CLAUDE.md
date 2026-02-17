@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Better ToDo** — a collaborative todo list app with real-time sync, fuzzy search, and list sharing. Built on React + TypeScript, Vite, Redux Toolkit, Supabase, and Tailwind CSS v4.
 
+## Current Status
+
+Phases 1-4 complete (Auth, Lists CRUD, Todos + Fuzzy Search, Sharing + Realtime). **Phase 5 (Mobile polish + PWA) is next**: AlphabetScroller, PWA manifest/service worker, mobile responsive sidebar, empty states, loading skeletons, toasts, offline banner, then deploy to Vercel.
+
 ## Commands
 
 ```bash
