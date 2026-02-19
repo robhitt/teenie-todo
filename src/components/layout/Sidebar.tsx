@@ -28,7 +28,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   return (
     <div className="flex h-full w-64 flex-col border-r bg-sidebar">
       <div className="hidden md:flex items-center justify-between border-b px-4 py-3">
-        <h2 className="text-lg font-semibold">Teenie ToDo</h2>
+        <h2 className="bg-gradient-to-r from-purple-600 via-pink-500 to-sky-500 bg-clip-text text-lg font-semibold text-transparent">Teenie ToDo</h2>
         <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign out">
           <LogOut className="h-4 w-4" />
         </Button>
