@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import confetti from 'canvas-confetti'
 import { toast } from 'sonner'
-import { MoreHorizontal, Share2, Pencil, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Share2, Pencil, Trash2, ArrowUpDown } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -34,6 +34,7 @@ import {
 import { renameList, deleteList } from '@/store/slices/listsSlice'
 import { useSearch } from '@/hooks/useSearch'
 import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ShareListDialog } from '@/components/lists/ShareListDialog'
@@ -43,6 +44,21 @@ import { SearchBar } from './SearchBar'
 import { TodoItem } from './TodoItem'
 import { AddTodoInput } from './AddTodoInput'
 import type { Todo } from '@/types/database'
+
+type SortMode = 'manual' | 'alpha' | 'alpha-reverse'
+
+const SORT_LABELS: Record<SortMode, string> = {
+  manual: 'Manual',
+  alpha: 'A–Z',
+  'alpha-reverse': 'Z–A',
+}
+
+function getSortMode(listId: string | undefined): SortMode {
+  if (!listId) return 'manual'
+  const stored = localStorage.getItem(`sortMode:${listId}`)
+  if (stored === 'alpha' || stored === 'alpha-reverse') return stored
+  return 'manual'
+}
 
 function SortableTodoItem({
   todo,
@@ -97,6 +113,8 @@ export function TodoList() {
   const [isRenaming, setIsRenaming] = useState(false)
   const [renameName, setRenameName] = useState('')
   const [showShare, setShowShare] = useState(false)
+  const [sortMode, setSortMode] = useState<SortMode>(() => getSortMode(listId))
+  const [showSortMenu, setShowSortMenu] = useState(false)
 
   const members = useListMembers(listId)
 
@@ -111,10 +129,11 @@ export function TodoList() {
 
   useRealtimeSubscription(listId)
 
-  // Remember last opened list
+  // Remember last opened list & restore sort mode
   useEffect(() => {
     if (listId) {
       localStorage.setItem('lastListId', listId)
+      setSortMode(getSortMode(listId))
     }
   }, [listId])
 
@@ -130,16 +149,22 @@ export function TodoList() {
   const { query, setQuery, results } = useSearch(todos)
 
   const { active, completed } = useMemo(() => {
-    const sorted = [...results].sort((a, b) => a.sort_order - b.sort_order)
+    const sorted = [...results].sort((a, b) => {
+      if (sortMode === 'alpha') return a.text.localeCompare(b.text)
+      if (sortMode === 'alpha-reverse') return b.text.localeCompare(a.text)
+      return a.sort_order - b.sort_order
+    })
     return {
       active: sorted.filter((t) => !t.is_completed),
       completed: sorted.filter((t) => t.is_completed),
     }
-  }, [results])
+  }, [results, sortMode])
 
-  // Celebrate when all items are completed
+  // Celebrate when all items are completed (use full list, not filtered results)
+  const allActiveCount = todos.filter((t) => !t.is_completed).length
+  const allCompletedCount = todos.filter((t) => t.is_completed).length
   useEffect(() => {
-    if (prevActiveCount.current !== null && prevActiveCount.current > 0 && active.length === 0 && completed.length > 0) {
+    if (prevActiveCount.current !== null && prevActiveCount.current > 0 && allActiveCount === 0 && allCompletedCount > 0) {
       setShowCelebration(true)
       const duration = 1000
       const end = Date.now() + duration
@@ -161,8 +186,8 @@ export function TodoList() {
       frame()
       setTimeout(() => setShowCelebration(false), 3000)
     }
-    prevActiveCount.current = active.length
-  }, [active.length, completed.length])
+    prevActiveCount.current = allActiveCount
+  }, [allActiveCount, allCompletedCount])
 
   const handleAdd = (text: string) => {
     if (listId) {
@@ -182,6 +207,12 @@ export function TodoList() {
 
   const handleEdit = (id: string, text: string) => {
     dispatch(updateTodo({ id, text }))
+  }
+
+  const handleSortChange = (mode: SortMode) => {
+    setSortMode(mode)
+    setShowSortMenu(false)
+    if (listId) localStorage.setItem(`sortMode:${listId}`, mode)
   }
 
   const handleClearCompleted = () => {
@@ -300,29 +331,71 @@ export function TodoList() {
 
       <SearchBar value={query} onChange={setQuery} />
 
-      <div className="mt-4 flex-1 overflow-auto">
+      <div className="mt-2 flex justify-end">
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
+            onClick={() => setShowSortMenu(!showSortMenu)}
+          >
+            <ArrowUpDown className="h-3 w-3" />
+            {SORT_LABELS[sortMode]}
+          </Button>
+          {showSortMenu && (
+            <div className="absolute right-0 z-10 mt-1 w-36 rounded-md border bg-popover py-1 shadow-md">
+              {(Object.keys(SORT_LABELS) as SortMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  className={cn(
+                    'flex w-full items-center px-3 py-1.5 text-sm hover:bg-accent',
+                    mode === sortMode && 'font-medium text-primary'
+                  )}
+                  onClick={() => handleSortChange(mode)}
+                >
+                  {SORT_LABELS[mode]}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-2 flex-1 overflow-auto [&]:[-webkit-overflow-scrolling:auto]">
         {active.length > 0 && (
           <div className="mb-4">
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={active.map((t) => t.id)}
-                strategy={verticalListSortingStrategy}
+            {sortMode === 'manual' ? (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
               >
-                {active.map((todo) => (
-                  <SortableTodoItem
-                    key={todo.id}
-                    todo={todo}
-                    onToggle={handleToggle}
-                    onDelete={handleDelete}
-                    onEdit={handleEdit}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
+                <SortableContext
+                  items={active.map((t) => t.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {active.map((todo) => (
+                    <SortableTodoItem
+                      key={todo.id}
+                      todo={todo}
+                      onToggle={handleToggle}
+                      onDelete={handleDelete}
+                      onEdit={handleEdit}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            ) : (
+              active.map((todo) => (
+                <TodoItem
+                  key={todo.id}
+                  todo={todo}
+                  onToggle={handleToggle}
+                  onDelete={handleDelete}
+                  onEdit={handleEdit}
+                />
+              ))
+            )}
           </div>
         )}
 
