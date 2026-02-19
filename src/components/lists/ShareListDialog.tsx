@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { UserPlus, X } from 'lucide-react'
+import { UserPlus, X, Link2, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,6 +16,56 @@ interface ShareEntry {
   id: string
   shared_with_id: string
   profile: Profile
+}
+
+function InviteLinkButton({ listId }: { listId: string }) {
+  const [copied, setCopied] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const handleCopyLink = async () => {
+    setLoading(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data, error } = await supabase
+        .from('invite_links')
+        .insert({ list_id: listId, created_by: user.id })
+        .select('token')
+        .single()
+
+      if (error) {
+        toast.error('Failed to create invite link')
+        return
+      }
+
+      const url = `${window.location.origin}/invite/${data.token}`
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      toast('Invite link copied to clipboard')
+      setTimeout(() => setCopied(false), 2000)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="mb-4">
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={handleCopyLink}
+        disabled={loading}
+      >
+        {copied ? (
+          <><Check className="mr-2 h-4 w-4" /> Copied!</>
+        ) : (
+          <><Link2 className="mr-2 h-4 w-4" /> Copy invite link</>
+        )}
+      </Button>
+      <p className="mt-1 text-xs text-muted-foreground">Anyone with the link can join this list. Expires in 7 days.</p>
+    </div>
+  )
 }
 
 export function ShareListDialog({ listId, isOpen, onClose }: ShareListDialogProps) {
@@ -106,6 +156,8 @@ export function ShareListDialog({ listId, isOpen, onClose }: ShareListDialogProp
             <UserPlus className="h-4 w-4" />
           </Button>
         </div>
+
+        <InviteLinkButton listId={listId} />
 
         {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
 

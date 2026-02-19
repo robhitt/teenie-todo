@@ -31,3 +31,12 @@ export interface Todo {
   created_at: string
   updated_at: string
 }
+
+export interface InviteLink {
+  id: string
+  list_id: string
+  token: string
+  created_by: string
+  expires_at: string
+  created_at: string
+}

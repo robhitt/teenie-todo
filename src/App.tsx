@@ -8,6 +8,7 @@ import { AuthGuard } from '@/components/auth/AuthGuard'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { TodoList } from '@/components/todos/TodoList'
 import { CreateListPage } from '@/components/lists/CreateListDialog'
+import { InviteHandler } from '@/components/invite/InviteHandler'
 
 function HomeRedirect() {
   const navigate = useNavigate()
@@ -33,15 +34,23 @@ function App() {
   return (
     <Provider store={store}>
       <BrowserRouter>
-        <AuthGuard>
-          <Routes>
-            <Route element={<AppLayout />}>
-              <Route index element={<HomeRedirect />} />
-              <Route path="list/:listId" element={<TodoList />} />
-              <Route path="new-list" element={<CreateListPage />} />
-            </Route>
-          </Routes>
-        </AuthGuard>
+        <Routes>
+          <Route path="invite/:token" element={<InviteHandler />} />
+          <Route
+            path="*"
+            element={
+              <AuthGuard>
+                <Routes>
+                  <Route element={<AppLayout />}>
+                    <Route index element={<HomeRedirect />} />
+                    <Route path="list/:listId" element={<TodoList />} />
+                    <Route path="new-list" element={<CreateListPage />} />
+                  </Route>
+                </Routes>
+              </AuthGuard>
+            }
+          />
+        </Routes>
       </BrowserRouter>
       <Toaster position="bottom-center" />
     </Provider>

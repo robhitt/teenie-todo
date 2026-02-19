@@ -1,20 +1,86 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import confetti from 'canvas-confetti'
 import { toast } from 'sonner'
 import { MoreHorizontal, Share2, Pencil, Trash2 } from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { fetchTodos, addTodo, toggleTodo, deleteTodo, optimisticToggle, clearTodos } from '@/store/slices/todosSlice'
+import {
+  fetchTodos,
+  addTodo,
+  toggleTodo,
+  deleteTodo,
+  updateTodo,
+  clearCompletedTodos,
+  reorderTodos,
+  optimisticToggle,
+  optimisticReorder,
+  clearTodos,
+} from '@/store/slices/todosSlice'
 import { renameList, deleteList } from '@/store/slices/listsSlice'
 import { useSearch } from '@/hooks/useSearch'
 import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ShareListDialog } from '@/components/lists/ShareListDialog'
+import { AvatarStack } from '@/components/ui/avatar-stack'
+import { useListMembers } from '@/hooks/useListMembers'
 import { SearchBar } from './SearchBar'
 import { TodoItem } from './TodoItem'
 import { AddTodoInput } from './AddTodoInput'
-import { AlphabetScroller } from './AlphabetScroller'
+import type { Todo } from '@/types/database'
+
+function SortableTodoItem({
+  todo,
+  onToggle,
+  onDelete,
+  onEdit,
+}: {
+  todo: Todo
+  onToggle: (id: string, isCompleted: boolean) => void
+  onDelete: (id: string) => void
+  onEdit: (id: string, text: string) => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: todo.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <TodoItem
+        todo={todo}
+        onToggle={onToggle}
+        onDelete={onDelete}
+        onEdit={onEdit}
+      />
+    </div>
+  )
+}
 
 export function TodoList() {
   const { listId } = useParams<{ listId: string }>()
@@ -31,7 +97,17 @@ export function TodoList() {
   const [isRenaming, setIsRenaming] = useState(false)
   const [renameName, setRenameName] = useState('')
   const [showShare, setShowShare] = useState(false)
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  const members = useListMembers(listId)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 5 },
+    })
+  )
 
   useRealtimeSubscription(listId)
 
@@ -54,29 +130,12 @@ export function TodoList() {
   const { query, setQuery, results } = useSearch(todos)
 
   const { active, completed } = useMemo(() => {
-    const sorted = [...results].sort((a, b) => a.text.localeCompare(b.text))
+    const sorted = [...results].sort((a, b) => a.sort_order - b.sort_order)
     return {
       active: sorted.filter((t) => !t.is_completed),
       completed: sorted.filter((t) => t.is_completed),
     }
   }, [results])
-
-  // Available letters for alphabet scroller
-  const availableLetters = useMemo(() => {
-    const letters = new Set<string>()
-    active.forEach((t) => {
-      const first = t.text.charAt(0).toUpperCase()
-      if (/[A-Z]/.test(first)) letters.add(first)
-    })
-    return letters
-  }, [active])
-
-  const handleLetterTap = useCallback((letter: string) => {
-    const el = document.getElementById(`letter-${letter}`)
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }, [])
 
   // Celebrate when all items are completed
   useEffect(() => {
@@ -121,6 +180,36 @@ export function TodoList() {
     toast('Item deleted')
   }
 
+  const handleEdit = (id: string, text: string) => {
+    dispatch(updateTodo({ id, text }))
+  }
+
+  const handleClearCompleted = () => {
+    if (listId) {
+      dispatch(clearCompletedTodos(listId))
+      toast('Completed items cleared')
+    }
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active: dragActive, over } = event
+    if (!over || dragActive.id === over.id) return
+
+    const oldIndex = active.findIndex((t) => t.id === dragActive.id)
+    const newIndex = active.findIndex((t) => t.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reordered = [...active]
+    const [moved] = reordered.splice(oldIndex, 1)
+    reordered.splice(newIndex, 0, moved)
+
+    const newIds = reordered.map((t) => t.id)
+    dispatch(optimisticReorder(newIds))
+
+    const updates = newIds.map((id, index) => ({ id, sort_order: index }))
+    dispatch(reorderTodos(updates))
+  }
+
   const handleRename = async () => {
     const trimmed = renameName.trim()
     if (!trimmed || !listId) return
@@ -158,9 +247,6 @@ export function TodoList() {
     )
   }
 
-  // Group active items by first letter for alphabet scroller targets
-  let currentLetter = ''
-
   return (
     <div className="relative mx-auto flex h-full max-w-2xl flex-col p-4">
       <div className="mb-4 flex items-center gap-2">
@@ -178,6 +264,7 @@ export function TodoList() {
         ) : (
           <>
             <h1 className="flex-1 text-2xl font-bold">{currentList?.name ?? 'List'}</h1>
+            {members.length > 1 && <AvatarStack members={members} />}
             <div className="relative">
               <Button variant="ghost" size="icon" onClick={() => setShowMenu(!showMenu)}>
                 <MoreHorizontal className="h-4 w-4" />
@@ -213,33 +300,47 @@ export function TodoList() {
 
       <SearchBar value={query} onChange={setQuery} />
 
-      <div className="mt-4 flex-1 overflow-auto pr-6" ref={scrollContainerRef}>
+      <div className="mt-4 flex-1 overflow-auto">
         {active.length > 0 && (
           <div className="mb-4">
-            {active.map((todo) => {
-              const firstChar = todo.text.charAt(0).toUpperCase()
-              const showAnchor = /[A-Z]/.test(firstChar) && firstChar !== currentLetter
-              if (showAnchor) currentLetter = firstChar
-
-              return (
-                <div key={todo.id}>
-                  {showAnchor && <div id={`letter-${firstChar}`} className="scroll-mt-2" />}
-                  <TodoItem
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={active.map((t) => t.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {active.map((todo) => (
+                  <SortableTodoItem
+                    key={todo.id}
                     todo={todo}
                     onToggle={handleToggle}
                     onDelete={handleDelete}
+                    onEdit={handleEdit}
                   />
-                </div>
-              )
-            })}
+                ))}
+              </SortableContext>
+            </DndContext>
           </div>
         )}
 
         {completed.length > 0 && (
           <div>
             {active.length > 0 && (
-              <div className="mb-2 border-t pt-2 text-xs font-medium text-muted-foreground">
-                Completed ({completed.length})
+              <div className="mb-2 flex items-center gap-2 border-t pt-2">
+                <span className="flex-1 text-xs font-medium text-muted-foreground">
+                  Completed ({completed.length})
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs text-muted-foreground"
+                  onClick={handleClearCompleted}
+                >
+                  Clear
+                </Button>
               </div>
             )}
             {completed.map((todo) => (
@@ -248,6 +349,7 @@ export function TodoList() {
                 todo={todo}
                 onToggle={handleToggle}
                 onDelete={handleDelete}
+                onEdit={handleEdit}
               />
             ))}
           </div>
@@ -272,8 +374,6 @@ export function TodoList() {
           <AddTodoInput onAdd={handleAdd} />
         </div>
       )}
-
-      {!query && <AlphabetScroller availableLetters={availableLetters} onLetterTap={handleLetterTap} />}
     </div>
   )
 }

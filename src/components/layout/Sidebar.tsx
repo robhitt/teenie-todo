@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Plus, LogOut } from 'lucide-react'
+import { Plus, LogOut, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { fetchLists } from '@/store/slices/listsSlice'
@@ -53,12 +53,15 @@ export function Sidebar({ onNavigate }: SidebarProps) {
               onClick={onNavigate}
               className={({ isActive }) =>
                 cn(
-                  'block rounded-md px-3 py-2.5 text-sm transition-colors hover:bg-accent min-h-[44px] flex items-center',
+                  'block rounded-md px-3 py-2.5 text-sm transition-colors hover:bg-accent min-h-[44px] flex items-center gap-2',
                   isActive && 'bg-accent font-medium'
                 )
               }
             >
-              {list.name}
+              <span className="flex-1 truncate">{list.name}</span>
+              {list.owner_id !== user?.id && (
+                <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              )}
             </NavLink>
           ))
         )}

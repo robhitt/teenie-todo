@@ -60,6 +60,46 @@ export const deleteTodo = createAsyncThunk('todos/deleteTodo', async (id: string
   return id
 })
 
+export const clearCompletedTodos = createAsyncThunk(
+  'todos/clearCompletedTodos',
+  async (listId: string) => {
+    const { error } = await supabase
+      .from('todos')
+      .delete()
+      .eq('list_id', listId)
+      .eq('is_completed', true)
+    if (error) throw error
+    return listId
+  }
+)
+
+export const updateTodo = createAsyncThunk(
+  'todos/updateTodo',
+  async ({ id, text }: { id: string; text: string }) => {
+    const { data, error } = await supabase
+      .from('todos')
+      .update({ text })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    return data as Todo
+  }
+)
+
+export const reorderTodos = createAsyncThunk(
+  'todos/reorderTodos',
+  async (items: { id: string; sort_order: number }[]) => {
+    const updates = items.map(({ id, sort_order }) =>
+      supabase.from('todos').update({ sort_order }).eq('id', id)
+    )
+    const results = await Promise.all(updates)
+    const failed = results.find((r) => r.error)
+    if (failed?.error) throw failed.error
+    return items
+  }
+)
+
 const todosSlice = createSlice({
   name: 'todos',
   initialState,
@@ -84,6 +124,17 @@ const todosSlice = createSlice({
     },
     realtimeDelete(state, action: PayloadAction<string>) {
       state.items = state.items.filter((t) => t.id !== action.payload)
+    },
+    optimisticReorder(state, action: PayloadAction<string[]>) {
+      const idOrder = action.payload
+      const itemMap = new Map(state.items.map((t) => [t.id, t]))
+      state.items = state.items.map((t) => {
+        const newIndex = idOrder.indexOf(t.id)
+        if (newIndex !== -1) {
+          return { ...itemMap.get(t.id)!, sort_order: newIndex }
+        }
+        return t
+      })
     },
   },
   extraReducers: (builder) => {
@@ -115,8 +166,17 @@ const todosSlice = createSlice({
       .addCase(deleteTodo.fulfilled, (state, action) => {
         state.items = state.items.filter((t) => t.id !== action.payload)
       })
+      .addCase(clearCompletedTodos.fulfilled, (state) => {
+        state.items = state.items.filter((t) => !t.is_completed)
+      })
+      .addCase(updateTodo.fulfilled, (state, action) => {
+        const index = state.items.findIndex((t) => t.id === action.payload.id)
+        if (index !== -1) {
+          state.items[index] = action.payload
+        }
+      })
   },
 })
 
-export const { clearTodos, optimisticToggle, realtimeUpsert, realtimeDelete } = todosSlice.actions
+export const { clearTodos, optimisticToggle, realtimeUpsert, realtimeDelete, optimisticReorder } = todosSlice.actions
 export default todosSlice.reducer
