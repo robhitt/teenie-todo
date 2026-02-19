@@ -24,9 +24,11 @@ export const fetchLists = createAsyncThunk('lists/fetchLists', async () => {
 })
 
 export const createList = createAsyncThunk('lists/createList', async (name: string) => {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
   const { data, error } = await supabase
     .from('lists')
-    .insert({ name })
+    .insert({ name, owner_id: user.id })
     .select()
     .single()
   if (error) throw error

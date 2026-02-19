@@ -361,7 +361,7 @@ export function TodoList() {
         </div>
       </div>
 
-      <div className="mt-2 flex-1 overflow-auto [&]:[-webkit-overflow-scrolling:auto]">
+      <div className="mt-2 flex-1 overflow-auto [-webkit-overflow-scrolling:auto]">
         {active.length > 0 && (
           <div className="mb-4">
             {sortMode === 'manual' ? (

@@ -19,6 +19,8 @@ export function CreateListPage() {
     if (createList.fulfilled.match(result)) {
       toast('List created')
       navigate(`/list/${result.payload.id}`)
+    } else {
+      toast.error('Failed to create list')
     }
   }
 

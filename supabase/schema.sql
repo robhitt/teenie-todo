@@ -70,10 +70,10 @@ create table if not exists invite_links (
 create or replace function public.set_list_owner()
 returns trigger as $$
 begin
-  new.owner_id := auth.uid();
+  new.owner_id := coalesce(new.owner_id, auth.uid());
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql;
 
 create or replace trigger set_list_owner_trigger
   before insert on lists
@@ -168,7 +168,7 @@ create policy "profiles_update" on profiles for update using (id = auth.uid());
 
 -- Lists: owner or shared user can see (via helper function)
 create policy "lists_select" on lists for select using (
-  public.has_list_access(id)
+  owner_id = auth.uid() or public.has_list_access(id)
 );
 create policy "lists_insert" on lists for insert with check (true);
 create policy "lists_update" on lists for update using (public.is_list_owner(id));
