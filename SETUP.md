@@ -118,12 +118,14 @@ Before clicking Deploy, expand **Environment Variables** and add:
 
 #### DNS at DreamHost (or other registrar)
 1. Log into [panel.dreamhost.com](https://panel.dreamhost.com)
-2. Go to **Manage Domains** → find your domain → **DNS** / **Edit DNS**
+2. Go to **Websites → Manage Websites** → find your domain → click **DNS** tab
 3. Delete any existing A records for the root domain
-4. Add these records:
-   - **A record**: Host = `@` (or blank), Value = `76.76.21.21`
-   - **CNAME record**: Host = `www`, Value = `cname.vercel-dns.com`
-5. DNS propagation takes 10-30 minutes (up to 48 hours)
+4. **IMPORTANT**: Use the exact DNS values shown on the Vercel domains page (step 4 above), NOT generic values. Vercel assigns project-specific records. They will look something like:
+   - **A record**: Host = blank (DreamHost auto-adds `@`), Value = the IP Vercel shows (e.g., `216.198.79.1`)
+   - **CNAME record**: Host = `www`, Value = the CNAME Vercel shows (e.g., `d8b87378584e83d3.vercel-dns-017.com.`)
+5. Click **Add Record** for each
+6. DNS propagation takes 10-30 minutes (up to 48 hours)
+7. Go back to Vercel and click **Refresh** on each domain to verify
 
 #### Update Supabase
 1. Go to **Authentication → URL Configuration**
