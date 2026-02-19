@@ -120,20 +120,25 @@ returns boolean as $$
 $$ language sql security definer stable;
 
 -- Accept invite link RPC (SECURITY DEFINER to bypass RLS)
+-- One-time use: deletes the invite link after acceptance
 create or replace function public.accept_invite(p_token text)
 returns uuid as $$
 declare
+  v_link_id uuid;
   v_list_id uuid;
   v_user_id uuid := auth.uid();
 begin
   -- Find valid, non-expired invite
-  select list_id into v_list_id
+  select id, list_id into v_link_id, v_list_id
   from public.invite_links
   where token = p_token and expires_at > now();
 
   if v_list_id is null then
     raise exception 'Invalid or expired invite link';
   end if;
+
+  -- Delete the link (one-time use)
+  delete from public.invite_links where id = v_link_id;
 
   -- Don't add owner as a share
   if public.is_list_owner(v_list_id) then

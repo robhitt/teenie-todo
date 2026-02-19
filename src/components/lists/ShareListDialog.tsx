@@ -18,7 +18,14 @@ interface ShareEntry {
   profile: Profile
 }
 
-function InviteLinkButton({ listId }: { listId: string }) {
+interface ActiveLink {
+  id: string
+  token: string
+  expires_at: string
+  created_at: string
+}
+
+function InviteLinkSection({ listId, links, onLinksChange }: { listId: string; links: ActiveLink[]; onLinksChange: () => void }) {
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -44,9 +51,22 @@ function InviteLinkButton({ listId }: { listId: string }) {
       setCopied(true)
       toast('Invite link copied to clipboard')
       setTimeout(() => setCopied(false), 2000)
+      onLinksChange()
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleRevoke = async (linkId: string) => {
+    await supabase.from('invite_links').delete().eq('id', linkId)
+    toast('Invite link revoked')
+    onLinksChange()
+  }
+
+  const handleRevokeAll = async () => {
+    await supabase.from('invite_links').delete().eq('list_id', listId)
+    toast('All invite links revoked')
+    onLinksChange()
   }
 
   return (
@@ -63,7 +83,30 @@ function InviteLinkButton({ listId }: { listId: string }) {
           <><Link2 className="mr-2 h-4 w-4" /> Copy invite link</>
         )}
       </Button>
-      <p className="mt-1 text-xs text-muted-foreground">Anyone with the link can join this list. Expires in 7 days.</p>
+      <p className="mt-1 text-xs text-muted-foreground">Single-use link. Expires in 7 days.</p>
+
+      {links.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground">Active links ({links.length})</p>
+            {links.length > 1 && (
+              <button className="text-xs text-destructive hover:underline" onClick={handleRevokeAll}>
+                Revoke all
+              </button>
+            )}
+          </div>
+          {links.map((link) => (
+            <div key={link.id} className="flex items-center justify-between rounded-md bg-muted px-3 py-1.5">
+              <span className="truncate font-mono text-xs text-muted-foreground">
+                ...{link.token.slice(-8)}
+              </span>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRevoke(link.id)}>
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -71,13 +114,26 @@ function InviteLinkButton({ listId }: { listId: string }) {
 export function ShareListDialog({ listId, isOpen, onClose }: ShareListDialogProps) {
   const [email, setEmail] = useState('')
   const [shares, setShares] = useState<ShareEntry[]>([])
+  const [inviteLinks, setInviteLinks] = useState<ActiveLink[]>([])
   const [error, setError] = useState('')
 
   useEffect(() => {
     if (isOpen) {
       loadShares()
+      loadInviteLinks()
     }
   }, [isOpen, listId])
+
+  const loadInviteLinks = async () => {
+    const { data } = await supabase
+      .from('invite_links')
+      .select('id, token, expires_at, created_at')
+      .eq('list_id', listId)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+
+    setInviteLinks(data ?? [])
+  }
 
   const loadShares = async () => {
     const { data } = await supabase
@@ -157,7 +213,7 @@ export function ShareListDialog({ listId, isOpen, onClose }: ShareListDialogProp
           </Button>
         </div>
 
-        <InviteLinkButton listId={listId} />
+        <InviteLinkSection listId={listId} links={inviteLinks} onLinksChange={loadInviteLinks} />
 
         {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
 
