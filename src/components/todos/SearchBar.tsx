@@ -27,7 +27,7 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
         value={local}
         onChange={(e) => setLocal(e.target.value)}
         placeholder="Search items..."
-        className="pl-9 pr-9"
+        className="pl-9 pr-9 text-base"
       />
       {local && (
         <Button
