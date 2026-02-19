@@ -1,0 +1,21 @@
+import { writeFileSync } from 'fs'
+import { execSync } from 'child_process'
+
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9333ea"/>
+      <stop offset="50%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <polyline points="140,270 220,350 372,178" fill="none" stroke="white" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`
+
+writeFileSync('public/icon.svg', svg)
+
+execSync('npx sharp-cli -i public/icon.svg -o public/pwa-192x192.png resize 192 192', { stdio: 'inherit' })
+execSync('npx sharp-cli -i public/icon.svg -o public/pwa-512x512.png resize 512 512', { stdio: 'inherit' })
+
+console.log('Icons generated!')
