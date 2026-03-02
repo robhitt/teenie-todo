@@ -190,9 +190,15 @@ export function TodoList() {
   }, [allActiveCount, allCompletedCount])
 
   const handleAdd = (text: string) => {
-    if (listId) {
-      dispatch(addTodo({ listId, text }))
+    if (!listId) return
+    const duplicate = todos.some(
+      (t) => t.text.toLowerCase() === text.toLowerCase()
+    )
+    if (duplicate) {
+      toast('This item is already on the list')
+      return
     }
+    dispatch(addTodo({ listId, text }))
   }
 
   const handleToggle = (id: string, isCompleted: boolean) => {
@@ -338,9 +344,8 @@ export function TodoList() {
 
       {listId && <ShareListDialog listId={listId} isOpen={showShare} onClose={() => setShowShare(false)} />}
 
-      <SearchBar value={query} onChange={setQuery} />
-
-      <div className="mt-2 flex justify-end">
+      <div className="flex items-center gap-2">
+        <SearchBar value={query} onChange={setQuery} />
         <div className="relative">
           <Button
             variant="ghost"
