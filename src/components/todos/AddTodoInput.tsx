@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Plus } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -9,22 +9,26 @@ interface AddTodoInputProps {
 
 export function AddTodoInput({ onAdd }: AddTodoInputProps) {
   const [text, setText] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const handleSubmit = () => {
     const trimmed = text.trim()
     if (!trimmed) return
     onAdd(trimmed)
     setText('')
+    inputRef.current?.blur()
   }
 
   return (
     <div className="flex gap-2">
       <Input
+        ref={inputRef}
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
         placeholder="Add an item..."
         className="flex-1"
+        enterKeyHint="send"
       />
       <Button onClick={handleSubmit} size="icon" variant="outline">
         <Plus className="h-4 w-4" />
