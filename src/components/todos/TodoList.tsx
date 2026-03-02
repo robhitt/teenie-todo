@@ -312,10 +312,12 @@ export function TodoList() {
             <h1 className="flex-1 text-2xl font-bold">{currentList?.name ?? 'List'}</h1>
             {members.length > 1 && <AvatarStack members={members} />}
             <div className="relative">
-              <Button variant="ghost" size="icon" onClick={() => setShowMenu(!showMenu)}>
+              <Button variant="ghost" size="icon" onClick={() => { setShowMenu(!showMenu); setShowSortMenu(false) }}>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
               {showMenu && (
+                <>
+                <div className="fixed inset-0 z-[5]" onClick={() => setShowMenu(false)} />
                 <div className="absolute right-0 z-10 mt-1 w-48 rounded-md border bg-popover py-1 shadow-md">
                   <button
                     className="flex w-full items-center gap-2 px-3 py-2.5 text-sm hover:bg-accent min-h-[44px]"
@@ -336,6 +338,7 @@ export function TodoList() {
                     <Trash2 className="h-4 w-4" /> Delete List
                   </button>
                 </div>
+                </>
               )}
             </div>
           </>
@@ -351,12 +354,14 @@ export function TodoList() {
             variant="ghost"
             size="sm"
             className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
-            onClick={() => setShowSortMenu(!showSortMenu)}
+            onClick={() => { setShowSortMenu(!showSortMenu); setShowMenu(false) }}
           >
             <ArrowUpDown className="h-3 w-3" />
             {SORT_LABELS[sortMode]}
           </Button>
           {showSortMenu && (
+            <>
+            <div className="fixed inset-0 z-[5]" onClick={() => setShowSortMenu(false)} />
             <div className="absolute right-0 z-10 mt-1 w-36 rounded-md border bg-popover py-1 shadow-md">
               {(Object.keys(SORT_LABELS) as SortMode[]).map((mode) => (
                 <button
@@ -371,6 +376,7 @@ export function TodoList() {
                 </button>
               ))}
             </div>
+            </>
           )}
         </div>
       </div>
