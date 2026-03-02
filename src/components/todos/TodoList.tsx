@@ -381,14 +381,7 @@ export function TodoList() {
         </div>
       </div>
 
-      <div
-        className="mt-2 flex-1 overflow-auto [-webkit-overflow-scrolling:auto]"
-        onTouchMove={() => {
-          if (document.activeElement instanceof HTMLElement) {
-            document.activeElement.blur()
-          }
-        }}
-      >
+      <div className="mt-2 flex-1 overflow-auto [-webkit-overflow-scrolling:auto]">
         {active.length > 0 && (
           <div className="mb-4">
             {sortMode === 'manual' ? (
