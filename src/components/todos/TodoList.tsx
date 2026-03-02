@@ -216,8 +216,18 @@ export function TodoList() {
   }
 
   const handleDelete = (id: string) => {
+    const todo = todos.find((t) => t.id === id)
     dispatch(deleteTodo(id))
-    toast('Item deleted')
+    toast('Item deleted', {
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          if (todo && listId) {
+            dispatch(addTodo({ listId, text: todo.text }))
+          }
+        },
+      },
+    })
   }
 
   const handleEdit = (id: string, text: string) => {
