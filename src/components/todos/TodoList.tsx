@@ -372,7 +372,7 @@ export function TodoList() {
           {showSortMenu && (
             <>
             <div className="fixed inset-0 z-[5]" onClick={() => setShowSortMenu(false)} />
-            <div className="absolute right-0 z-10 mt-1 w-36 rounded-md border bg-popover py-1 shadow-md">
+            <div className="absolute left-0 right-auto z-10 mt-1 w-36 rounded-md border bg-popover py-1 shadow-md sm:left-auto sm:right-0">
               {(Object.keys(SORT_LABELS) as SortMode[]).map((mode) => (
                 <button
                   key={mode}
