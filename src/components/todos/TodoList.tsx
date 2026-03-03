@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import confetti from 'canvas-confetti'
 import { toast } from 'sonner'
-import { MoreHorizontal, Share2, Pencil, Trash2, ArrowUpDown } from 'lucide-react'
+import { MoreHorizontal, Share2, Pencil, Trash2, ArrowUpDown, Plus } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -42,7 +42,7 @@ import { AvatarStack } from '@/components/ui/avatar-stack'
 import { useListMembers } from '@/hooks/useListMembers'
 import { SearchBar } from './SearchBar'
 import { TodoItem } from './TodoItem'
-import { AddTodoInput } from './AddTodoInput'
+import { AddTodoInput, type AddTodoInputHandle } from './AddTodoInput'
 import type { Todo } from '@/types/database'
 
 type SortMode = 'manual' | 'alpha' | 'alpha-reverse'
@@ -116,6 +116,7 @@ export function TodoList() {
   const [sortMode, setSortMode] = useState<SortMode>(() => getSortMode(listId))
   const [showSortMenu, setShowSortMenu] = useState(false)
 
+  const addInputRef = useRef<AddTodoInputHandle>(null)
   const members = useListMembers(listId)
 
   const sensors = useSensors(
@@ -359,6 +360,7 @@ export function TodoList() {
 
       <div className="flex items-center gap-2">
         <SearchBar value={query} onChange={setQuery} />
+        <div className="flex-1" />
         <div className="relative">
           <Button
             variant="ghost"
@@ -389,6 +391,16 @@ export function TodoList() {
             </>
           )}
         </div>
+        {!query && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground"
+            onClick={() => addInputRef.current?.expand()}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       <div
@@ -481,7 +493,7 @@ export function TodoList() {
 
       {!query && (
         <div className="sticky bottom-0 -mx-4 border-t border-border/50 bg-background/60 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-lg">
-          <AddTodoInput onAdd={handleAdd} />
+          <AddTodoInput ref={addInputRef} onAdd={handleAdd} />
         </div>
       )}
     </div>

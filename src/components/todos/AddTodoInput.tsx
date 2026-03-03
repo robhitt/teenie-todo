@@ -1,14 +1,18 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
 import { Plus } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
+export interface AddTodoInputHandle {
+  expand: () => void
+}
+
 interface AddTodoInputProps {
   onAdd: (text: string) => void
 }
 
-export function AddTodoInput({ onAdd }: AddTodoInputProps) {
+export const AddTodoInput = forwardRef<AddTodoInputHandle, AddTodoInputProps>(function AddTodoInput({ onAdd }, ref) {
   const [text, setText] = useState('')
   const [expanded, setExpanded] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -25,6 +29,10 @@ export function AddTodoInput({ onAdd }: AddTodoInputProps) {
   const handleExpand = () => {
     setExpanded(true)
   }
+
+  useImperativeHandle(ref, () => ({
+    expand: handleExpand,
+  }))
 
   // Focus input when expanding
   useEffect(() => {
@@ -82,4 +90,4 @@ export function AddTodoInput({ onAdd }: AddTodoInputProps) {
       </Button>
     </div>
   )
-}
+})
