@@ -53,8 +53,8 @@ export function AddTodoInput({ onAdd }: AddTodoInputProps) {
       <button
         onClick={handleExpand}
         className={cn(
-          'flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm',
-          'text-muted-foreground hover:bg-accent min-h-[44px]',
+          'flex w-full items-center gap-2 rounded-md border border-input bg-background px-3 py-2.5 text-sm',
+          'text-muted-foreground hover:border-ring min-h-[44px] transition-colors',
         )}
       >
         <Plus className="h-4 w-4" />
