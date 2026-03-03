@@ -473,7 +473,7 @@ export function TodoList() {
       </div>
 
       {!query && (
-        <div className="border-t pt-4">
+        <div className="sticky bottom-0 -mx-4 border-t border-border/50 bg-background/60 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-lg">
           <AddTodoInput onAdd={handleAdd} />
         </div>
       )}
