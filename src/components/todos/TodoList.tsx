@@ -393,7 +393,7 @@ export function TodoList() {
 
       <div
         className="mt-2 flex-1 overflow-auto [-webkit-overflow-scrolling:auto]"
-        onTouchMove={() => {
+        onScroll={() => {
           if (document.activeElement instanceof HTMLElement) {
             document.activeElement.blur()
           }
