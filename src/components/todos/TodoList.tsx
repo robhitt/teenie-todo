@@ -360,7 +360,7 @@ export function TodoList() {
 
       <div className="flex items-center gap-2">
         <SearchBar value={query} onChange={setQuery} />
-        <div className="flex-1" />
+        <div className="ml-auto flex shrink-0 items-center gap-2">
         <div className="relative">
           <Button
             variant="ghost"
@@ -401,6 +401,7 @@ export function TodoList() {
             <Plus className="h-4 w-4" />
           </Button>
         )}
+        </div>
       </div>
 
       <div
