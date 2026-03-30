@@ -190,9 +190,17 @@ export function TodoList() {
   }, [allActiveCount, allCompletedCount])
 
   const handleAdd = (text: string) => {
-    if (listId) {
-      dispatch(addTodo({ listId, text }))
+    if (!listId) return
+    const duplicate = todos.some(
+      (t) => t.text.toLowerCase() === text.toLowerCase()
+    )
+    if (duplicate) {
+      toast('This item is already on the list', {
+        action: { label: 'Dismiss', onClick: () => {} },
+      })
+      return
     }
+    dispatch(addTodo({ listId, text }))
   }
 
   const handleToggle = (id: string, isCompleted: boolean) => {
