@@ -196,7 +196,9 @@ export function TodoList() {
       (t) => t.text.toLowerCase() === text.toLowerCase()
     )
     if (duplicate) {
-      toast('This item is already on the list')
+      toast('This item is already on the list', {
+        action: { label: 'Dismiss', onClick: () => {} },
+      })
       return
     }
     dispatch(addTodo({ listId, text }))
