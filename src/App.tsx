@@ -52,7 +52,7 @@ function App() {
           />
         </Routes>
       </BrowserRouter>
-      <Toaster position="bottom-center" />
+      <Toaster position="bottom-center" duration={4000} closeButton />
     </Provider>
   )
 }

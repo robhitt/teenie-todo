@@ -44,6 +44,11 @@
   }
 }
 
+/* Constrain Sonner toasts to viewport on mobile */
+[data-sonner-toaster] {
+  --width: min(356px, calc(100vw - 2rem));
+}
+
 /* Mobile sidebar slide-in animation */
 @keyframes slide-in-from-left {
   from { transform: translateX(-100%); }
