@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import confetti from 'canvas-confetti'
 import { toast } from 'sonner'
-import { MoreHorizontal, Share2, Pencil, Trash2, ArrowUpDown } from 'lucide-react'
+import { MoreHorizontal, Share2, Pencil, Trash2, ArrowUpDown, Plus } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -42,7 +42,7 @@ import { AvatarStack } from '@/components/ui/avatar-stack'
 import { useListMembers } from '@/hooks/useListMembers'
 import { SearchBar } from './SearchBar'
 import { TodoItem } from './TodoItem'
-import { AddTodoInput } from './AddTodoInput'
+import { AddTodoInput, type AddTodoInputHandle } from './AddTodoInput'
 import type { Todo } from '@/types/database'
 
 type SortMode = 'manual' | 'alpha' | 'alpha-reverse'
@@ -116,6 +116,7 @@ export function TodoList() {
   const [sortMode, setSortMode] = useState<SortMode>(() => getSortMode(listId))
   const [showSortMenu, setShowSortMenu] = useState(false)
 
+  const addInputRef = useRef<AddTodoInputHandle>(null)
   const members = useListMembers(listId)
 
   const sensors = useSensors(
@@ -218,8 +219,18 @@ export function TodoList() {
   }
 
   const handleDelete = (id: string) => {
+    const todo = todos.find((t) => t.id === id)
     dispatch(deleteTodo(id))
-    toast('Item deleted')
+    toast('Item deleted', {
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          if (todo && listId) {
+            dispatch(addTodo({ listId, text: todo.text }))
+          }
+        },
+      },
+    })
   }
 
   const handleEdit = (id: string, text: string) => {
@@ -314,10 +325,12 @@ export function TodoList() {
             <h1 className="flex-1 text-2xl font-bold">{currentList?.name ?? 'List'}</h1>
             {members.length > 1 && <AvatarStack members={members} />}
             <div className="relative">
-              <Button variant="ghost" size="icon" onClick={() => setShowMenu(!showMenu)}>
+              <Button variant="ghost" size="icon" onClick={() => { setShowMenu(!showMenu); setShowSortMenu(false) }}>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
               {showMenu && (
+                <>
+                <div className="fixed inset-0 z-[5]" onClick={() => setShowMenu(false)} />
                 <div className="absolute right-0 z-10 mt-1 w-48 rounded-md border bg-popover py-1 shadow-md">
                   <button
                     className="flex w-full items-center gap-2 px-3 py-2.5 text-sm hover:bg-accent min-h-[44px]"
@@ -338,6 +351,7 @@ export function TodoList() {
                     <Trash2 className="h-4 w-4" /> Delete List
                   </button>
                 </div>
+                </>
               )}
             </div>
           </>
@@ -346,21 +360,23 @@ export function TodoList() {
 
       {listId && <ShareListDialog listId={listId} isOpen={showShare} onClose={() => setShowShare(false)} />}
 
-      <SearchBar value={query} onChange={setQuery} />
-
-      <div className="mt-2 flex justify-end">
+      <div className="flex items-center gap-2">
+        <SearchBar value={query} onChange={setQuery} />
+        <div className="ml-auto flex shrink-0 items-center gap-2">
         <div className="relative">
           <Button
             variant="ghost"
             size="sm"
             className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
-            onClick={() => setShowSortMenu(!showSortMenu)}
+            onClick={() => { setShowSortMenu(!showSortMenu); setShowMenu(false) }}
           >
             <ArrowUpDown className="h-3 w-3" />
             {SORT_LABELS[sortMode]}
           </Button>
           {showSortMenu && (
-            <div className="absolute right-0 z-10 mt-1 w-36 rounded-md border bg-popover py-1 shadow-md">
+            <>
+            <div className="fixed inset-0 z-[5]" onClick={() => setShowSortMenu(false)} />
+            <div className="absolute left-0 right-auto z-10 mt-1 w-36 rounded-md border bg-popover py-1 shadow-md sm:left-auto sm:right-0">
               {(Object.keys(SORT_LABELS) as SortMode[]).map((mode) => (
                 <button
                   key={mode}
@@ -374,11 +390,30 @@ export function TodoList() {
                 </button>
               ))}
             </div>
+            </>
           )}
+        </div>
+        {!query && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground"
+            onClick={() => addInputRef.current?.expand()}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        )}
         </div>
       </div>
 
-      <div className="mt-2 flex-1 overflow-auto [-webkit-overflow-scrolling:auto]">
+      <div
+        className="mt-2 flex-1 overflow-auto [-webkit-overflow-scrolling:auto]"
+        onScroll={() => {
+          if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur()
+          }
+        }}
+      >
         {active.length > 0 && (
           <div className="mb-4">
             {sortMode === 'manual' ? (
@@ -460,8 +495,8 @@ export function TodoList() {
       </div>
 
       {!query && (
-        <div className="border-t pt-4">
-          <AddTodoInput onAdd={handleAdd} />
+        <div className="sticky bottom-0 -mx-4 border-t border-border/50 bg-background/60 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-lg">
+          <AddTodoInput ref={addInputRef} onAdd={handleAdd} />
         </div>
       )}
     </div>
